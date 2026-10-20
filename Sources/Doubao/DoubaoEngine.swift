@@ -59,8 +59,8 @@ final class DoubaoEngine: NSObject, ObservableObject {
         wv.alpha = 0.02
         wv.isUserInteractionEnabled = false
         wv.navigationDelegate = self
-        wv.userContentController.add(self, name: "doubaoCtl")
-        wv.userContentController.add(self, name: "doubaoEvent")
+        wv.configuration.userContentController.add(self, name: "doubaoCtl")
+        wv.configuration.userContentController.add(self, name: "doubaoEvent")
         container.addSubview(wv)
         webView = wv
         phase = .loading
@@ -164,7 +164,7 @@ final class DoubaoEngine: NSObject, ObservableObject {
         let trace = UUID().uuidString.replacingOccurrences(of: "-", with: "").lowercased()
 
         return await withCheckedContinuation { cont in
-            let p = Pending(onDelta: onDelta, onImage: onImage) { [weak self] outcome, ackConv, ackSect, metaIdx, usedLocalId in
+            let p = Pending(localId: localId, onDelta: onDelta, onImage: onImage) { [weak self] outcome, ackConv, ackSect, metaIdx, usedLocalId in
                 Task { @MainActor in
                     guard let self else { return }
                     var out = outcome
