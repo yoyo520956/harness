@@ -33,7 +33,7 @@ struct MessageRow: View {
                 if m.streaming && m.text.isEmpty {
                     running
                 } else if m.streaming {
-                    running.compact()
+                    Circle().fill(theme.blue).frame(width: 6, height: 6).modifier(PulseModifier())
                 }
                 if !m.images.isEmpty { images }
                 if let v = m.videoURL { videoChip(v) }
