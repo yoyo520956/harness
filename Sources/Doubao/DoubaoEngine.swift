@@ -377,6 +377,7 @@ extension DoubaoEngine {
   }
 })(__B64__);
 """#
+    }
 
     private func videoJS(vid: String) -> String {
         let v = vid.replacingOccurrences(of: "\"", with: "")
