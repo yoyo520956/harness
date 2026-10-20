@@ -322,7 +322,7 @@ extension DoubaoEngine {
             .replacingOccurrences(of: "__TRACE__", with: trace)
     }
 
-    private let streamJSTemplate = #"""
+    private var streamJSTemplate: String { #"""
 (async (__B64__) => {
   const RID = "__RID__", TRACE = "__TRACE__";
   const ctl = (h) => { try { webkit.messageHandlers.doubaoCtl.postMessage(Object.assign({rid: RID}, h)); } catch (e) {} };
