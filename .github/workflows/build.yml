@@ -1,0 +1,41 @@
+name: build
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Pick Xcode (fallback chain)
+        run: |
+          for v in 16.4 16.3 16.2; do
+            if [ -d "/Applications/Xcode_$v.app" ]; then
+              sudo xcode-select -s "/Applications/Xcode_$v.app"; break
+            fi
+          done
+          xcodebuild -version
+      - name: Install xcodegen
+        run: brew install xcodegen
+      - name: Generate project
+        run: xcodegen generate
+      - name: Build
+        run: |
+          set -o pipefail
+          xcodebuild -project harness.xcodeproj -scheme Harness \
+            -destination 'generic/platform=iOS' -quiet build 2>&1 | tail -300
+      - name: Package IPA
+        run: |
+          APP=$(find ~/Library/Developer/Xcode/DerivedData -name 'harness.app' -path '*iphoneos*' | head -1)
+          test -n "$APP" && test -f "$APP/harness" || { echo 'FAKE SUCCESS GUARD: no binary'; exit 1; }
+          mkdir -p build/Payload
+          cp -R "$APP" build/Payload/
+          cd build && zip -qry harness.ipa Payload && ls -la harness.ipa
+      - uses: actions/upload-artifact@v4
+        with:
+          name: harness-ipa
+          path: build/harness.ipa
