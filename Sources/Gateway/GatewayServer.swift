@@ -179,11 +179,11 @@ final class GatewayServer: ObservableObject {
         return false
     }
 
-    private func handleModels(_ conn: NWConnection) {
+    private func modelsJSON() -> Data {
         let data: [[String: Any]] = DoubaoModels.list.map {
             ["id": $0, "object": "model", "created": 1700000000, "owned_by": "doubao-web"]
         }
-        respond(conn, "200 OK", json(["object": "list", "data": data]))
+        return json(["object": "list", "data": data])
     }
 
     // MARK: - 对话（只取最后一条 user 消息；多轮靠豆包服务端会话 + App 侧状态映射 · 规格 §3.4/§8）
@@ -401,10 +401,3 @@ final class GatewayServer: ObservableObject {
         }
     }
 }
-
-    private func modelsJSON() -> Data {
-        let data: [[String: Any]] = DoubaoModels.list.map {
-            ["id": $0, "object": "model", "created": 1700000000, "owned_by": "doubao-web"]
-        }
-        return json(["object": "list", "data": data])
-    }
