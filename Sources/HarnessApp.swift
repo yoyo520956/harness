@@ -7,6 +7,7 @@ struct HarnessApp: App {
     @StateObject private var engine = DoubaoEngine.shared
     @StateObject private var vm = ChatVM()
     @StateObject private var gateway = GatewayServer.shared
+    @StateObject private var ish = IshEngine.shared
     @State private var gatewayBooted = false
 
     var body: some Scene {
@@ -34,6 +35,7 @@ struct HarnessApp: App {
             .environmentObject(engine)
             .environmentObject(vm)
             .environmentObject(gateway)
+            .environmentObject(ish)
             .tint(theme.blue)
             .task {
                 if gatewayBooted { return }
@@ -71,16 +73,6 @@ struct CanvasView: View {
     }
 }
 
-struct TerminalView: View {
-    var body: some View {
-        VStack(spacing: 12) {
-            Spacer()
-            Image(systemName: "terminal").font(.system(size: 44)).foregroundStyle(.secondary)
-            Text("Terminal · iSH Alpine（v0.5 实装）").foregroundStyle(.secondary)
-            Spacer()
-        }
-    }
-}
 
 struct AgentsView: View {
     var body: some View {

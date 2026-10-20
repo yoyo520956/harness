@@ -6,8 +6,8 @@ options:
   createIntermediateGroups: true
 settings:
   base:
-    MARKETING_VERSION: 0.2.0
-    CURRENT_PROJECT_VERSION: 20261021.03
+    MARKETING_VERSION: 0.3.0
+    CURRENT_PROJECT_VERSION: 20261021.04
     SWIFT_VERSION: "5.9"
     ENABLE_DEBUG_DYLIB: "NO"
     CODE_SIGN_IDENTITY: ""
@@ -18,9 +18,25 @@ targets:
   Harness:
     type: application
     platform: iOS
+    preBuildScripts:
+      - path: scripts/build-ish.sh
+        name: Build iSH engine
+        basedOnDependencyAnalysis: false
+        outputFiles:
+          - $(SRCROOT)/vendor/out/libish.a
+          - $(SRCROOT)/vendor/out/libish_emu.a
+          - $(SRCROOT)/vendor/out/libfakefs.a
+          - $(SRCROOT)/vendor/out/libarchive.a
     sources:
       - Sources
       - Resources
+    dependencies:
+      - sdk: libsqlite3.tbd
+      - sdk: libz.tbd
+      - library: vendor/out/libish.a
+      - library: vendor/out/libish_emu.a
+      - library: vendor/out/libfakefs.a
+      - library: vendor/out/libarchive.a
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.qingyao.harness
@@ -28,6 +44,8 @@ targets:
         TARGETED_DEVICE_FAMILY: "1"
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         GENERATE_INFOPLIST_FILE: "NO"
+        SWIFT_OBJC_BRIDGING_HEADER: Sources/Terminal/IshBridge.h
+        HEADER_SEARCH_PATHS: '"$(SRCROOT)/vendor/ish" "$(SRCROOT)/vendor/ish/deps/libarchive/libarchive"'
     info:
       path: Info.plist
       properties:

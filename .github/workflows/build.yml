@@ -19,8 +19,15 @@ jobs:
             fi
           done
           xcodebuild -version
-      - name: Install xcodegen
-        run: brew install xcodegen
+      - name: Install toolchain
+        run: brew install xcodegen meson ninja cmake
+      - name: Fetch Alpine rootfs
+        run: |
+          curl -fL --retry 3 -o Resources/rootfs.tar.gz \
+            "https://github.com/ish-app/roots/releases/download/g00712ff0a54b2839c5aa1a8ed758003ca65357dc/appstore-apk.tar.gz" \
+          || curl -fL --retry 3 -o Resources/rootfs.tar.gz \
+            "https://gh-proxy.com/https://github.com/ish-app/roots/releases/download/g00712ff0a54b2839c5aa1a8ed758003ca65357dc/appstore-apk.tar.gz"
+          ls -la Resources/rootfs.tar.gz
       - name: Generate project
         run: xcodegen generate
       - name: Build
