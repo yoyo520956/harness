@@ -1,111 +1,94 @@
 import SwiftUI
+import WebKit
 
 @main
 struct HarnessApp: App {
     @StateObject private var theme = HarnessTheme.shared
+    @StateObject private var engine = DoubaoEngine.shared
+    @StateObject private var vm = ChatVM()
+    @StateObject private var gateway = GatewayServer.shared
+    @State private var gatewayBooted = false
+
     var body: some Scene {
         WindowGroup {
-            TabView {
-                ChatView()
-                    .tabItem { Label("Chat", systemImage: "bubble.left.and.text.bubble.right") }
-                CanvasView()
-                    .tabItem { Label("Canvas", systemImage: "square.on.square.dashed") }
-                TerminalView()
-                    .tabItem { Label("Terminal", systemImage: "terminal") }
-                AgentsView()
-                    .tabItem { Label("Agents", systemImage: "cpu") }
-                SettingsView()
-                    .tabItem { Label("Settings", systemImage: "gearshape") }
+            ZStack {
+                TabView {
+                    ChatView()
+                        .tabItem { Label("Chat", systemImage: "bubble.left.and.text.bubble.right") }
+                    CanvasView()
+                        .tabItem { Label("Canvas", systemImage: "square.on.square.dashed") }
+                    TerminalView()
+                        .tabItem { Label("Terminal", systemImage: "terminal") }
+                    AgentsView()
+                        .tabItem { Label("Agents", systemImage: "cpu") }
+                    SettingsView()
+                        .tabItem { Label("Settings", systemImage: "gearshape") }
+                }
+                // 隐藏豆包引擎 WebView 宿主（1pt、不可交互，页面常驻维持登录态）
+                EngineHost(engine: engine)
+                    .frame(width: 1, height: 1)
+                    .opacity(0.01)
+                    .allowsHitTesting(false)
             }
             .environmentObject(theme)
-            .tint(theme.accent)
-        }
-    }
-}
-
-// MARK: - Theme（占位版；v0.6 按 deepseek-harness 规格逐像素替换）
-final class HarnessTheme: ObservableObject {
-    static let shared = HarnessTheme()
-    let accent = Color.blue
-    let bg = Color(UIColor.systemBackground)
-    let bubbleUser = Color.blue
-    let bubbleAI = Color(UIColor.secondarySystemBackground)
-}
-
-// MARK: - 占位屏（后续逐屏按 harness-ui.md 还原）
-struct ChatView: View {
-    var body: some View {
-        NavigationStack {
-            VStack(spacing: 12) {
-                Spacer()
-                Image(systemName: "bubble.left.and.text.bubble.right")
-                    .font(.system(size: 44)).foregroundStyle(.secondary)
-                Text("Chat · 豆包网关对接中")
-                    .foregroundStyle(.secondary)
-                Spacer()
+            .environmentObject(engine)
+            .environmentObject(vm)
+            .environmentObject(gateway)
+            .tint(theme.blue)
+            .task {
+                if gatewayBooted { return }
+                gatewayBooted = true
+                if UserDefaults.standard.bool(forKey: "harness.gateway.enabled") {
+                    gateway.savePort()
+                    gateway.start()
+                }
             }
-            .navigationTitle("Chat")
         }
     }
 }
 
+/// 豆包引擎 WebView 宿主（attach 后自动加载 doubao.com 并保持常驻）
+struct EngineHost: UIViewRepresentable {
+    let engine: DoubaoEngine
+    func makeUIView(context: Context) -> UIView {
+        let v = UIView()
+        v.backgroundColor = .clear
+        DispatchQueue.main.async { engine.attach(into: v) }
+        return v
+    }
+    func updateUIView(_ uiView: UIView, context: Context) {}
+}
+
+// MARK: - 占位屏（v0.3+ 逐屏实装）
 struct CanvasView: View {
     var body: some View {
-        NavigationStack {
-            VStack(spacing: 12) {
-                Spacer()
-                Image(systemName: "square.on.square.dashed")
-                    .font(.system(size: 44)).foregroundStyle(.secondary)
-                Text("Canvas · 无限画布")
-                    .foregroundStyle(.secondary)
-                Spacer()
-            }
-            .navigationTitle("Canvas")
+        VStack(spacing: 12) {
+            Spacer()
+            Image(systemName: "square.on.square.dashed").font(.system(size: 44)).foregroundStyle(.secondary)
+            Text("Canvas · 无限画布（v0.6 实装）").foregroundStyle(.secondary)
+            Spacer()
         }
     }
 }
 
 struct TerminalView: View {
     var body: some View {
-        NavigationStack {
-            VStack(spacing: 12) {
-                Spacer()
-                Image(systemName: "terminal")
-                    .font(.system(size: 44)).foregroundStyle(.secondary)
-                Text("Terminal · iSH Alpine")
-                    .foregroundStyle(.secondary)
-                Spacer()
-            }
-            .navigationTitle("Terminal")
+        VStack(spacing: 12) {
+            Spacer()
+            Image(systemName: "terminal").font(.system(size: 44)).foregroundStyle(.secondary)
+            Text("Terminal · iSH Alpine（v0.5 实装）").foregroundStyle(.secondary)
+            Spacer()
         }
     }
 }
 
 struct AgentsView: View {
     var body: some View {
-        NavigationStack {
-            VStack(spacing: 12) {
-                Spacer()
-                Image(systemName: "cpu")
-                    .font(.system(size: 44)).foregroundStyle(.secondary)
-                Text("Agents · OpenClaw 功能面")
-                    .foregroundStyle(.secondary)
-                Spacer()
-            }
-            .navigationTitle("Agents")
-        }
-    }
-}
-
-struct SettingsView: View {
-    var body: some View {
-        NavigationStack {
-            Form {
-                Section("豆包账号") { Text("Cookie 配置（v0.2）") }
-                Section("本地网关") { Text("OpenAI 兼容服务（v0.2）") }
-                Section("关于") { Text("deepseek-harness · v0.1") }
-            }
-            .navigationTitle("Settings")
+        VStack(spacing: 12) {
+            Spacer()
+            Image(systemName: "cpu").font(.system(size: 44)).foregroundStyle(.secondary)
+            Text("Agents · OpenClaw 功能面（v0.4 实装）").foregroundStyle(.secondary)
+            Spacer()
         }
     }
 }

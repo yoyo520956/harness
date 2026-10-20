@@ -6,8 +6,8 @@ options:
   createIntermediateGroups: true
 settings:
   base:
-    MARKETING_VERSION: 0.1.0
-    CURRENT_PROJECT_VERSION: 20261021.02
+    MARKETING_VERSION: 0.2.0
+    CURRENT_PROJECT_VERSION: 20261021.03
     SWIFT_VERSION: "5.9"
     ENABLE_DEBUG_DYLIB: "NO"
     CODE_SIGN_IDENTITY: ""
@@ -31,7 +31,7 @@ targets:
     info:
       path: Info.plist
       properties:
-        CFBundleDisplayName: harness
+        CFBundleDisplayName: DeepSeek Harness
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         UILaunchScreen: {}
