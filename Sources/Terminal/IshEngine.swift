@@ -1,7 +1,7 @@
 import Foundation
 
 /// iSH 引擎 Swift 封装：专用内核线程（iSH 的 current 是线程本地的，GCD 串行队列不保证同一线程）
-final class IshEngine: ObservableObject {
+final class IshEngine: NSObject, ObservableObject {
     static let shared = IshEngine()
 
     enum Phase: Equatable { case idle, installing, booting, ready, failed(String) }
@@ -11,7 +11,7 @@ final class IshEngine: ObservableObject {
     private let thread: Thread
     private var bootStarted = false
 
-    private init() {
+    private override init() {
         thread = Thread(block: {
             let rl = RunLoop.current
             while true {
