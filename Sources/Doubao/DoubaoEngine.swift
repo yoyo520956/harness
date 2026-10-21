@@ -194,8 +194,9 @@ final class DoubaoEngine: NSObject, ObservableObject {
             let js = streamJS(b64: b64, rid: rid, trace: trace)
             webView?.evaluateJavaScript(js, completionHandler: { _, err in
                 if let err = err {
-                    HarnessLog.shared.add("[豆包] JS 注入失败 \(err.localizedDescription.prefix(120))")
-                    self.failPending(rid, message: "JS 注入失败: \(err.localizedDescription)")
+                    let detail = ((err as NSError).userInfo["WKJavaScriptExceptionMessage"] as? String) ?? ""
+                    HarnessLog.shared.add("[豆包] JS 注入失败 \(err.localizedDescription) | \(detail.prefix(200))")
+                    self.failPending(rid, message: "JS 注入失败: \(err.localizedDescription) \(detail.prefix(160))")
                 }
             })
         }
@@ -324,7 +325,7 @@ extension DoubaoEngine {
     }
 
     private var streamJSTemplate: String { #"""
-(async (__B64__) => {
+(async (__B64_ARG__) => {
   const RID = "__RID__", TRACE = "__TRACE__";
   const ctl = (h) => { try { webkit.messageHandlers.doubaoCtl.postMessage(Object.assign({rid: RID}, h)); } catch (e) {} };
   const emit = (h) => { try { webkit.messageHandlers.doubaoEvent.postMessage(Object.assign({rid: RID}, h)); } catch (e) {} };
@@ -333,7 +334,7 @@ extension DoubaoEngine {
       ctl({type:'error', code:'NOT_HOOKED', msg:'window.fetch 未被豆包页面 JS 接管（未登录或页面未加载完）'});
       return;
     }
-    const payload = new TextDecoder().decode(Uint8Array.from(atob(__B64__), c => c.charCodeAt(0)));
+    const payload = new TextDecoder().decode(Uint8Array.from(atob(__B64_ARG__), c => c.charCodeAt(0)));
     const resp = await fetch('https://www.doubao.com/chat/completion', {
       method: 'POST',
       headers: {'Content-Type':'application/json','Agw-Js-Conv':'str','x-flow-trace':TRACE,'last-event-id':'undefined'},
