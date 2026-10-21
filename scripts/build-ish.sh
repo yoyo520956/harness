@@ -33,6 +33,13 @@ AR=$(xcrun -f --sdk iphoneos ar)
 # brew llvm 是 keg-only：ld.lld 不在 PATH，vdso 的 -fuse-ld=lld 需要它
 export PATH="/opt/homebrew/opt/llvm/bin:/usr/local/opt/llvm/bin:$PATH"
 
+# LLVM 23 驱动对 -fuse-ld=lld 的解析抽风 → 就地补丁为 --ld-path= 绝对路径
+LLD_BIN="/opt/homebrew/opt/llvm/bin/ld.lld"
+if [ ! -f "$LLD_BIN" ]; then LLD_BIN="/usr/local/opt/llvm/bin/ld.lld"; fi
+echo "[iSH] patching vdso: --ld-path=$LLD_BIN"
+sed -i '' "s#-fuse-ld=lld#--ld-path=$LLD_BIN#g" \
+  "$SRCROOT/vendor/ish/vdso/meson.build" "$SRCROOT/vendor/ish/vdso/check-cc.sh"
+
 # 1) libarchive 静态库（fakefs_import 依赖）
 if [ ! -f "$OUT/libarchive.a" ]; then
   echo "[iSH] building libarchive (ios arm64)"
