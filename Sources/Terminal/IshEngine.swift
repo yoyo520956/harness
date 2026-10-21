@@ -54,7 +54,7 @@ final class IshEngine: NSObject, ObservableObject {
             if rc == 0 {
                 self.phase = .ready
             } else {
-                self.phase = .failed(Self.bootErrorText(rc))
+                self.phase = .failed(Self.bootErrorText(Int(rc)))
             }
         }
     }
