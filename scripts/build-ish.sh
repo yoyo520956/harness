@@ -30,6 +30,9 @@ SDK_PATH=$(xcrun -sdk iphoneos --show-sdk-path)
 CLANG=$(xcrun -f --sdk iphoneos clang)
 AR=$(xcrun -f --sdk iphoneos ar)
 
+# brew llvm 是 keg-only：ld.lld 不在 PATH，vdso 的 -fuse-ld=lld 需要它
+export PATH="/opt/homebrew/opt/llvm/bin:/usr/local/opt/llvm/bin:$PATH"
+
 # 1) libarchive 静态库（fakefs_import 依赖）
 if [ ! -f "$OUT/libarchive.a" ]; then
   echo "[iSH] building libarchive (ios arm64)"
