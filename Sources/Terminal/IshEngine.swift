@@ -39,11 +39,11 @@ final class IshEngine: ObservableObject {
 
     @objc private func _bootThread() {
         let rootDir = IshGlue.defaultRootDir()
-        var err: NSError?
-        let ok = IshGlue.shared().installRootIfMissingTarResource("rootfs", rootDir: rootDir, error: &err)
-        guard ok else {
-            HarnessLog.shared.add("[iSH] rootfs 导入失败 \(err?.localizedDescription ?? "?")")
-            DispatchQueue.main.async { self.phase = .failed("rootfs 导入失败: \(err?.localizedDescription ?? "未知")") }
+        do {
+            _ = try IshGlue.shared().installRootIfMissingTarResource("rootfs", rootDir: rootDir)
+        } catch {
+            HarnessLog.shared.add("[iSH] rootfs 导入失败 \(error.localizedDescription)")
+            DispatchQueue.main.async { self.phase = .failed("rootfs 导入失败: \(error.localizedDescription)") }
             return
         }
         HarnessLog.shared.add("[iSH] rootfs 就绪，启动内核")
