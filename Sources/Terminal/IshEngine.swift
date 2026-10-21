@@ -51,8 +51,30 @@ final class IshEngine: NSObject, ObservableObject {
         let rc = IshGlue.shared().boot(withRootDir: rootDir)
         HarnessLog.shared.add("[iSH] boot rc=\(rc)")
         DispatchQueue.main.async {
-            self.phase = rc == 0 ? .ready : .failed("boot 错误码 \(rc)")
+            if rc == 0 {
+                self.phase = .ready
+            } else {
+                self.phase = .failed(Self.bootErrorText(rc))
+            }
         }
+    }
+
+    static func bootErrorText(_ rc: Int) -> String {
+        let v = -rc
+        guard v > 1000 else { return "boot 错误码 \(rc)" }
+        let step = v / 1000
+        let err = v % 1000
+        let names = ["mount_root", "become_first_process", "create_stdio", "do_execve(/sbin/init)"]
+        let stepName = step >= 1 && step <= 4 ? names[step - 1] : "step\(step)"
+        let errName: String
+        switch err {
+        case 2: errName = "ENOENT(文件不存在)"
+        case 13: errName = "EACCES(权限)"
+        case 22: errName = "EINVAL(参数非法)"
+        case 12: errName = "ENOMEM(内存)"
+        default: errName = "errno \(err)"
+        }
+        return "boot 失败于 \(stepName)：\(errName)"
     }
 
     // MARK: - 会话

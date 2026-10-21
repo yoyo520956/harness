@@ -104,7 +104,17 @@ static void glue_exit_hook(struct task *task, int code) {
                                 rootDir:(NSURL *)rootDir
                                   error:(NSError **)error {
     NSURL *dataFile = [rootDir URLByAppendingPathComponent:@"data"];
-    if ([NSFileManager.defaultManager fileExistsAtPath:dataFile.path]) return YES;
+    NSFileManager *fm = NSFileManager.defaultManager;
+    BOOL exists = [fm fileExistsAtPath:dataFile.path];
+    if (exists) {
+        // 坏布局检测：data 目录里又套了一层 meta.db（v0.3.0 的 bug 产物）→ 清掉重导
+        NSString *nested = [dataFile.path stringByAppendingPathComponent:@"meta.db"];
+        if ([fm fileExistsAtPath:nested]) {
+            [fm removeItemAtURL:rootDir error:nil];
+        } else {
+            return YES;   // 官方布局：<root>/data + <root>/meta.db
+        }
+    }
 
     NSURL *tar = [NSBundle.mainBundle URLForResource:resourceName withExtension:@"tar.gz"];
     if (tar == nil) {
@@ -114,12 +124,11 @@ static void glue_exit_hook(struct task *task, int code) {
         }
         return NO;
     }
-    [NSFileManager.defaultManager createDirectoryAtURL:rootDir
-                           withIntermediateDirectories:YES attributes:nil error:nil];
     NSURL *tmp = [[NSURL fileURLWithPath:NSTemporaryDirectory()]
                   URLByAppendingPathComponent:[NSProcessInfo.processInfo globallyUniqueString]];
     struct fakefsify_error fs_err;
     struct progress p = {NULL, null_progress};
+    // fakefs_import(fs) 会创建目录 fs，内含 data/（文件树）+ meta.db（元数据库）
     if (!fakefs_import(tar.fileSystemRepresentation, tmp.fileSystemRepresentation, &fs_err, p)) {
         if (error) {
             NSString *domain = fs_err.type == ERR_SQLITE ? @"SQLite" : @"IshArchive";
@@ -128,18 +137,22 @@ static void glue_exit_hook(struct task *task, int code) {
                             [NSString stringWithFormat:@"%s (line %d)", fs_err.message, fs_err.line]}];
         }
         if (fs_err.message) free(fs_err.message);
-        [NSFileManager.defaultManager removeItemAtURL:tmp error:nil];
+        [fm removeItemAtURL:tmp error:nil];
         return NO;
     }
-    return [NSFileManager.defaultManager moveItemAtURL:tmp toURL:dataFile error:error];
+    // 整目录搬到位：tmp → <rootDir>（data/ 与 meta.db 成为其子项，fakefs_mount 按 source 的邻居找 meta.db）
+    if ([fm fileExistsAtPath:rootDir.path]) [fm removeItemAtURL:rootDir error:nil];
+    return [fm moveItemAtURL:tmp toURL:rootDir error:error];
 }
+
+static int step_err(int step, int err) { return -(step * 1000 + (-err)); }
 
 - (int)bootWithRootDir:(NSURL *)rootDir {
     int err = mount_root(&fakefs, [rootDir URLByAppendingPathComponent:@"data"].path.fileSystemRepresentation);
-    if (err < 0) return err;
+    if (err < 0) return step_err(1, err);
 
     err = become_first_process();
-    if (err < 0) return err;
+    if (err < 0) return step_err(2, err);
 
     create_some_device_nodes();
     generic_setattrat(AT_PWD, "/", (struct attr) {.type = attr_mode, .mode = 0755}, false);
@@ -153,7 +166,7 @@ static void glue_exit_hook(struct task *task, int code) {
     tty_drivers[TTY_CONSOLE_MAJOR] = &glue_console_driver;
     set_console_device(TTY_CONSOLE_MAJOR, 1);
     err = create_stdio("/dev/console", TTY_CONSOLE_MAJOR, 1);
-    if (err < 0) return err;
+    if (err < 0) return step_err(3, err);
 
     exit_hook = glue_exit_hook;
 
@@ -162,7 +175,7 @@ static void glue_exit_hook(struct task *task, int code) {
     char argv[4096];
     fill_args(cmd, argv, sizeof(argv));
     err = do_execve(cmd[0].UTF8String, cmd.count, argv, "TERM=xterm-256color");
-    if (err < 0) return err;
+    if (err < 0) return step_err(4, err);
     task_start(current);
     return 0;
 }

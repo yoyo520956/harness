@@ -72,6 +72,7 @@ final class DoubaoEngine: NSObject, ObservableObject {
         guard let wv = webView else { return }
         pageLoaded = false
         phase = .loading
+        loginHint = .unknown   // 刷新即清登录怀疑，等下一次实测说话
         wv.load(URLRequest(url: URL(string: "https://www.doubao.com")!))
     }
 
@@ -143,7 +144,7 @@ final class DoubaoEngine: NSObject, ObservableObject {
         guard hooked else {
             DispatchQueue.main.async { self.loginHint = .likelyLoggedOut }
             var o = StreamOutcome()
-            o.error = "未登录或页面拦截器未就绪：请到 设置 → 豆包账号 登录 doubao.com 后重试"
+            o.error = "豆包页面拦截器未就绪（可能未登录或页面刚加载完）：请在 设置 → 豆包账号 登录后重新点「发送测试消息」"
             HarnessLog.shared.add("[豆包] fetch 未被接管（未登录/页面未就绪）")
             return (o, state)
         }

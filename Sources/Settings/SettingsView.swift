@@ -28,7 +28,11 @@ struct SettingsView: View {
             .background(theme.bgBase)
             .navigationTitle("设置")
             .navigationBarTitleDisplayMode(.inline)
-            .sheet(isPresented: $showLogin, onDismiss: { engine.reloadPage() }) {
+            .sheet(isPresented: $showLogin, onDismiss: {
+                engine.reloadPage()
+                // 给页面 2.5s 加载 + hook 注入，然后自动重测刷新登录状态
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) { self.testConnection() }
+            }) {
                 DoubaoLoginSheet()
             }
         }
