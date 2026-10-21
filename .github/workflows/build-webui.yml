@@ -1,0 +1,98 @@
+name: Build WebUI (deepseek-harness dist capture)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/build-webui.yml', 'scripts/capture-webui.mjs']
+
+jobs:
+  capture:
+    runs-on: macos-15
+    timeout-minutes: 150
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout harness repo (for scripts)
+        uses: actions/checkout@v4
+        with:
+          path: harness
+          fetch-depth: 1
+
+      - name: Checkout deepseek-harness (pinned)
+        uses: actions/checkout@v4
+        with:
+          repository: deepseek-ai/deepseek-harness
+          ref: 687f282e8625c6b8d11ff58211a90524be2e4317
+          path: dsh
+          fetch-depth: 1
+
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Enable pnpm
+        working-directory: dsh
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.28.5 --activate
+          pnpm --version
+
+      - name: Install dependencies
+        working-directory: dsh
+        run: pnpm install --frozen-lockfile
+        timeout-minutes: 30
+
+      - name: Build repository artifacts
+        working-directory: dsh
+        run: pnpm run build
+        timeout-minutes: 80
+
+      - name: Start dsh web and wait fully ready
+        working-directory: dsh
+        run: |
+          export DSH_HOME="$RUNNER_TEMP/dshhome"
+          mkdir -p "$DSH_HOME"
+          node apps/cli/lib/bin.js web --no-open --port 3117 > "$RUNNER_TEMP/dsh-web.log" 2>&1 &
+          echo $! > "$RUNNER_TEMP/dsh-web.pid"
+          ok=0
+          for i in $(seq 1 300); do
+            if grep -q "dsh web: http" "$RUNNER_TEMP/dsh-web.log" 2>/dev/null; then ok=1; break; fi
+            sleep 2
+          done
+          echo "startup_line=$ok"
+          cat "$RUNNER_TEMP/dsh-web.log" || true
+
+      - name: Capture served UI (token + cookie)
+        shell: bash
+        run: |
+          mkdir -p webui-capture
+          TOKEN=$(grep -o 'token=[A-Za-z0-9_-]*' "$RUNNER_TEMP/dsh-web.log" | head -1 | cut -d= -f2)
+          echo "token acquired: ${TOKEN:0:6}..."
+          curl -sL -c webui-capture/.cookies "http://127.0.0.1:3117/?token=$TOKEN" -o webui-capture/index.html -w "http=%{http_code}\n"
+          head -c 300 webui-capture/index.html; echo
+          if [ "$(wc -c < webui-capture/index.html)" -lt 20000 ]; then echo "index.html too small — capture failed"; exit 1; fi
+          node harness/scripts/capture-webui.mjs http://127.0.0.1:3117 webui-capture
+          cp "$RUNNER_TEMP/dsh-web.log" webui-capture/dsh-web.log || true
+          ls -la webui-capture | head -40
+          du -sh webui-capture
+
+      - name: Upload capture
+        uses: actions/upload-artifact@v4
+        with:
+          name: webui-capture
+          path: webui-capture
+          retention-days: 7
+
+      - name: Publish capture to webui-dist branch
+        working-directory: harness
+        run: |
+          git config user.email "ci@harness.local"
+          git config user.name "ci"
+          git checkout --orphan webui-dist
+          git rm -rf --cached . >/dev/null 2>&1 || true
+          mv ../webui-capture ./webui-dist-files
+          git add webui-dist-files
+          git commit -m "webui dist capture $(date -u +%FT%TZ)"
+          git push origin webui-dist --force

@@ -1,0 +1,51 @@
+name: build-rootfs
+on:
+  push:
+    branches: [main]
+    paths: ['rootfs/**']
+  workflow_dispatch:
+    inputs:
+      alpine:
+        description: 'Alpine image tag'
+        default: 'edge'
+jobs:
+  rootfs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build dsh rootfs in Alpine x64 musl (native, no emulation)
+        run: |
+          IMG=${{ github.event.inputs.alpine || 'edge' }}
+          mkdir -p out
+          docker run --rm -v "$PWD/out:/out" "alpine:$IMG" sh -euc '
+            set -e
+            echo "https://dl-cdn.alpinelinux.org/alpine/edge/main" >> /etc/apk/repositories
+            echo "https://dl-cdn.alpinelinux.org/alpine/edge/community" >> /etc/apk/repositories
+            apk add --no-cache --update nodejs npm libstdc++ ca-certificates bash curl git openssh tzdata
+            node -v; npm -v
+            npm i -g @deepseek-ai/dsh --omit=dev --no-audit --no-fund
+            npm cache -g clean --force
+            npm cache clean --force 2>/dev/null || true
+            echo "--- dsh version ---"
+            /usr/bin/dsh --version || true
+            echo "--- global modules ---"
+            du -sh /usr/lib/node_modules
+            cd /
+            tar --exclude=./proc --exclude=./sys --exclude=./dev \
+                -czf /out/dsh-rootfs.tgz ./usr ./etc ./lib ./bin ./sbin ./root ./home ./tmp ./var ./opt
+          '
+          ls -la out/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dsh-rootfs
+          path: out/dsh-rootfs.tgz
+      - name: Publish rootfs tarball
+        if: success()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p dist && mv out/dsh-rootfs.tgz dist/
+          VER=$(git rev-parse --short HEAD)
+          gh release create rootfs-latest --title "dsh rootfs (auto)" --notes "Alpine x64 musl + node + @deepseek-ai/dsh 预装" 2>/dev/null || true
+          gh release upload rootfs-latest dist/dsh-rootfs.tgz --clobber
+          gh release view rootfs-latest --json assets -q '.assets[].name'
