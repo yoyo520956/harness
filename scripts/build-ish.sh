@@ -35,6 +35,7 @@ if [ ! -f "$OUT/libarchive.a" ]; then
   echo "[iSH] building libarchive (ios arm64)"
   cmake -S "$SRCROOT/vendor/ish/deps/libarchive" -B "$BUILD/libarchive" \
     -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=iphoneos -DCMAKE_OSX_ARCHITECTURES=arm64 \
+    -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
     -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF \
     -DENABLE_TEST=OFF -DENABLE_TAR=OFF -DENABLE_CPIO=OFF -DENABLE_CAT=OFF \
     -DENABLE_OPENSSL=OFF -DENABLE_XML2=OFF -DENABLE_EXPAT=OFF -DENABLE_ICONV=OFF \
