@@ -3,7 +3,11 @@
 #include "kernel/calls.h"
 #include "kernel/init.h"
 #include "fs/tty.h"
+#include "fs/devices.h"
 #include "fs/dyndev.h"
+#include "fs/path.h"
+#include "fs/sock.h"
+#include "tools/fakefs.h"
 #include "misc.h"
 
 // MARK: - 会话状态（单会话模型：交互终端 + AI 一次性命令共用）
