@@ -33,6 +33,9 @@ targets:
     dependencies:
       - sdk: libsqlite3.tbd
       - sdk: libz.tbd
+      - sdk: libxml2.tbd
+      - sdk: libiconv.tbd
+      - sdk: libbz2.tbd
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.qingyao.harness
