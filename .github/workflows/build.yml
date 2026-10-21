@@ -20,7 +20,7 @@ jobs:
           done
           xcodebuild -version
       - name: Install toolchain
-        run: brew install xcodegen meson ninja cmake llvm
+        run: brew install xcodegen meson ninja cmake llvm lld
       - name: Fetch Alpine rootfs
         run: |
           curl -fL --retry 3 -o Resources/rootfs.tar.gz \
