@@ -33,10 +33,6 @@ targets:
     dependencies:
       - sdk: libsqlite3.tbd
       - sdk: libz.tbd
-      - library: vendor/out/libish.a
-      - library: vendor/out/libish_emu.a
-      - library: vendor/out/libfakefs.a
-      - library: vendor/out/libarchive.a
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.qingyao.harness
@@ -46,6 +42,8 @@ targets:
         GENERATE_INFOPLIST_FILE: "NO"
         SWIFT_OBJC_BRIDGING_HEADER: Sources/Terminal/IshBridge.h
         HEADER_SEARCH_PATHS: '"$(SRCROOT)/vendor/ish" "$(SRCROOT)/vendor/ish/deps/libarchive/libarchive"'
+        LIBRARY_SEARCH_PATHS: "$(SRCROOT)/vendor/out"
+        OTHER_LDFLAGS: "-lish -lish_emu -lfakefs -larchive" 
     info:
       path: Info.plist
       properties:
